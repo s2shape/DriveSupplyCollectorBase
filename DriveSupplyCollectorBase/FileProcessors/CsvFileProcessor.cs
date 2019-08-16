@@ -79,7 +79,7 @@ namespace DriveSupplyCollectorBase.FileProcessors
                         continue;
 
                     var cells = line.Split(",");
-                    if (cells.Length > entityIndex) {
+                    if (entityIndex < cells.Length) {
                         samples.Add(cells[entityIndex].Trim());
                     }
                 }

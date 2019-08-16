@@ -20,6 +20,9 @@ namespace DriveSupplyCollectorBase
 
                 var processors = new List<IFileProcessor>();
                 foreach (var processorType in processorTypes) {
+                    if(!processorType.IsClass)
+                        continue;
+                    
                     var constructor = processorType.GetConstructor(new Type[] { });
                     processors.Add((IFileProcessor) constructor.Invoke(new object[] { }));
                 }
@@ -56,6 +59,8 @@ namespace DriveSupplyCollectorBase
             }
 
             int index = entities.IndexOf(entities.Find(x => x.Name.Equals(dataEntity.Name)));
+            if (index < 0)
+                throw new ArgumentException("Entity not found in schema!");
 
             using (var stream = GetFileStream(dataEntity.Container, dataEntity.Collection.Name)) {
                 return processor.CollectSamples(dataEntity.Container, dataEntity.Collection, dataEntity, index,
