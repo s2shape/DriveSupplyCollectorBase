@@ -1,8 +1,12 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Parquet;
+using Parquet.Data;
 
 namespace CsvConverter
 {
@@ -73,6 +77,39 @@ namespace CsvConverter
             {"TEAM_SET_ID", JTokenType.Guid}
         };
 
+        private static Dictionary<string, DataType> parquet_types = new Dictionary<string, DataType>() {
+            {"ID", DataType.String},
+            {"DELETED", DataType.Boolean},
+            {"CREATED_BY", DataType.String},
+            {"DATE_ENTERED", DataType.DateTimeOffset},
+            {"MODIFIED_USER_ID", DataType.String},
+            {"DATE_MODIFIED", DataType.DateTimeOffset},
+            {"DATE_MODIFIED_UTC", DataType.DateTimeOffset},
+            {"ASSIGNED_USER_ID", DataType.String},
+            {"TEAM_ID", DataType.String},
+            {"NAME", DataType.String},
+            {"DATE_START", DataType.DateTimeOffset},
+            {"TIME_START", DataType.DateTimeOffset},
+            {"PARENT_TYPE", DataType.String},
+            {"PARENT_ID", DataType.String},
+            {"DESCRIPTION", DataType.String},
+            {"DESCRIPTION_HTML", DataType.String},
+            {"FROM_ADDR", DataType.String},
+            {"FROM_NAME", DataType.String},
+            {"TO_ADDRS", DataType.String},
+            {"CC_ADDRS", DataType.String},
+            {"BCC_ADDRS", DataType.String},
+            {"TYPE", DataType.String},
+            {"STATUS", DataType.String},
+            {"MESSAGE_ID", DataType.String},
+            {"REPLY_TO_NAME", DataType.String},
+            {"REPLY_TO_ADDR", DataType.String},
+            {"INTENT", DataType.String},
+            {"MAILBOX_ID", DataType.String},
+            {"RAW_SOURCE", DataType.String},
+            {"TEAM_SET_ID", DataType.String}
+        };
+
         private static JValue ParseValue(JTokenType type, string value) {
             if (String.IsNullOrEmpty(value))
                 return new JValue((string)null);
@@ -90,6 +127,24 @@ namespace CsvConverter
                     return new JValue(DateTime.Parse(value));
             }
             return new JValue(value);
+        }
+
+        private static object ParseValue(DataType type, string value) {
+            if (String.IsNullOrEmpty(value))
+                return null;
+
+            switch (type) {
+                case DataType.Boolean:
+                    return Boolean.Parse(value);
+                case DataType.Int32:
+                    return Int32.Parse(value);
+                case DataType.Double:
+                    return Double.Parse(value);
+                case DataType.DateTimeOffset:
+                    return DateTimeOffset.Parse(value);
+            }
+
+            return value;
         }
 
         static void ConvertCsvToJson(string inputFile, string outputFile) {
@@ -140,8 +195,89 @@ namespace CsvConverter
             File.WriteAllText(outputFile, json);
         }
 
-        static void ConvertCsvToParquet(string inputFile, string outputFile) {
+        private static DataField CreateParquetField(string name, DataType type) {
+            switch (type) {
+                case DataType.Boolean:
+                    return new DataField<bool>(name);
+                case DataType.Int32:
+                    return new DataField<int>(name);
+                case DataType.Double:
+                    return new DataField<double>(name);
+                case DataType.DateTimeOffset:
+                    return new DataField<DateTimeOffset>(name);
+            }
+            return new DataField<string>(name);
+        }
 
+        public static Type ConvertParquetType(DataType type) {
+            switch (type)
+            {
+                case DataType.Boolean:
+                    return typeof(bool);
+                case DataType.Int32:
+                    return typeof(int);
+                case DataType.Double:
+                    return typeof(double);
+                case DataType.DateTimeOffset:
+                    return typeof(DateTimeOffset);
+            }
+
+            return typeof(string);
+        }
+
+        static void ConvertCsvToParquet(string inputFile, string outputFile) {
+            var data = new Dictionary<string, ArrayList>();
+
+            using (var reader = new StreamReader(inputFile, true))
+            {
+                var header = reader.ReadLine();
+
+                var columns = header.Split(",");
+                for (int i = 0; i < columns.Length; i++)
+                {
+                    columns[i] = columns[i].Trim();
+                }
+
+                while (!reader.EndOfStream)
+                {
+                    var line = reader.ReadLine();
+                    if (String.IsNullOrEmpty(line))
+                        continue;
+
+                    var parts = line.Split(",");
+                    for (int i = 0; i < parts.Length && i < columns.Length; i++)
+                    {
+                        var column = columns[i];
+
+                        if (parquet_types.ContainsKey(column)) {
+                            if (!data.ContainsKey(column)) {
+                                data.Add(column, new ArrayList());
+                            }
+
+                            data[column].Add(ParseValue(parquet_types[column], parts[i]));
+                        }
+                    }
+                }
+            }
+
+            var datacolumns = parquet_types.Select(
+                x => new DataColumn(CreateParquetField(x.Key, x.Value), data[x.Key].ToArray(ConvertParquetType(x.Value)))
+            ).ToArray();
+            var schema = new Schema(datacolumns.Select(x => (Field)x.Field).ToArray());
+
+            using (Stream fileStream = System.IO.File.OpenWrite(outputFile))
+            {
+                using (var parquetWriter = new ParquetWriter(schema, fileStream))
+                {
+                    // create a new row group in the file
+                    using (ParquetRowGroupWriter groupWriter = parquetWriter.CreateRowGroup())
+                    {
+                        foreach (var column in datacolumns) {
+                            groupWriter.WriteColumn(column);
+                        }
+                    }
+                }
+            }
         }
 
 
