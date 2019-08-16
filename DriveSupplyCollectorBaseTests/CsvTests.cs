@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
-using DriveSupplyCollectorBase.FileTypeResolvers;
+using System.IO;
+using System.Linq;
+using DriveSupplyCollectorBase.FileProcessors;
 using S2.BlackSwan.SupplyCollector.Models;
 using Xunit;
 using Xunit.Abstractions;
@@ -18,9 +20,9 @@ namespace DriveSupplyCollectorBaseTests
 
         [Fact]
         public void TestCsvDetect() {
-            var resolver = new CsvFileTypeResolver();
+            var processor = new CsvFileProcessor();
             
-            Assert.True(resolver.CanProcess("emails-utf8.csv"));
+            Assert.True(processor.CanProcess("emails-utf8.csv"));
         }
 
         [Fact]
@@ -49,8 +51,11 @@ namespace DriveSupplyCollectorBaseTests
             var container = new DataContainer();
             var collection = new DataCollection(container, "emails-utf8.csv");
 
-            var resolver = new CsvFileTypeResolver();
-            var entities = resolver.ParseFileSchema(container, collection, "../../../tests/emails-utf8.csv");
+            var processor = new CsvFileProcessor();
+            List<DataEntity> entities;
+            using (var stream = File.Open("../../../tests/emails-utf8.csv", FileMode.Open)) {
+                entities = processor.ParseFileSchema(container, collection, stream);
+            }
 
             foreach (var field in fields) {
                 output.WriteLine($" check field {field.Key}");
@@ -65,11 +70,24 @@ namespace DriveSupplyCollectorBaseTests
         {
             var container = new DataContainer();
             var collection = new DataCollection(container, "emails-utf8.csv");
-            var entity = new DataEntity("FROM_ADDR", DataType.String, "String", container, collection);
 
-            var resolver = new CsvFileTypeResolver();
-            var samples = resolver.CollectSamples(container, collection, entity, "../../../tests/emails-utf8.csv", 5);
-            Assert.Contains("sally@example.com", samples);
+            var processor = new CsvFileProcessor();
+
+            List<DataEntity> entities;
+            using (var stream = File.Open("../../../tests/emails-utf8.csv", FileMode.Open))
+            {
+                entities = processor.ParseFileSchema(container, collection, stream);
+            }
+
+            var entity = entities.FirstOrDefault(x => x.Name.Equals("FROM_ADDR"));
+
+            int index = entities.IndexOf(entity);
+            
+            using (var stream = File.Open("../../../tests/emails-utf8.csv", FileMode.Open)) {
+                var samples =
+                    processor.CollectSamples(container, collection, entity, index, stream, 5);
+                Assert.Contains("sally@example.com", samples);
+            }
         }
 
         [Fact]
@@ -78,13 +96,30 @@ namespace DriveSupplyCollectorBaseTests
             var collection1 = new DataCollection(container, "emails-utf8.csv");
             var collection2 = new DataCollection(container, "emails-utf16.csv");
 
-            var entity = new DataEntity("FROM_ADDR", DataType.String, "String", container, collection1);
-
             var emails = new string[] { "will@example.com", "sally@example.com", "chris@example.com" };
 
-            var resolver = new CsvFileTypeResolver();
-            var samples1 = resolver.CollectSamples(container, collection1, entity, "../../../tests/emails-utf8.csv", emails.Length);
-            var samples2 = resolver.CollectSamples(container, collection2, entity, "../../../tests/emails-utf16.csv", emails.Length);
+            var processor = new CsvFileProcessor();
+
+            List<DataEntity> entities;
+            using (var stream = File.Open("../../../tests/emails-utf8.csv", FileMode.Open))
+            {
+                entities = processor.ParseFileSchema(container, collection1, stream);
+            }
+            var entity = entities.FirstOrDefault(x => x.Name.Equals("FROM_ADDR"));
+            int index = entities.IndexOf(entity);
+
+            List<string> samples1;
+            List<string> samples2;
+
+            using (var stream = File.Open("../../../tests/emails-utf8.csv", FileMode.Open)) {
+                samples1 = processor.CollectSamples(container, collection1, entity, index, stream,
+                    emails.Length);
+            }
+
+            using (var stream = File.Open("../../../tests/emails-utf16.csv", FileMode.Open)) {
+                samples2 = processor.CollectSamples(container, collection2, entity, index, stream,
+                    emails.Length);
+            }
 
             Assert.Equal(emails.Length, samples1.Count);
             Assert.Equal(emails.Length, samples2.Count);

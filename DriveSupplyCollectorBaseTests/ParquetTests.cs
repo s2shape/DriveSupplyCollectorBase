@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Text;
-using DriveSupplyCollectorBase.FileTypeResolvers;
+using DriveSupplyCollectorBase.FileProcessors;
 using S2.BlackSwan.SupplyCollector.Models;
 using Xunit;
 using Xunit.Abstractions;
@@ -20,9 +22,9 @@ namespace DriveSupplyCollectorBaseTests
         [Fact]
         public void TestParquetDetect()
         {
-            var resolver = new ParquetFileTypeResolver();
+            var processor = new ParquetFileProcessor();
 
-            Assert.True(resolver.CanProcess("emails-utf8.parquet"));
+            Assert.True(processor.CanProcess("emails-utf8.parquet"));
         }
 
         [Fact]
@@ -52,8 +54,12 @@ namespace DriveSupplyCollectorBaseTests
             var container = new DataContainer();
             var collection = new DataCollection(container, "emails-utf8.parquet");
 
-            var resolver = new ParquetFileTypeResolver();
-            var entities = resolver.ParseFileSchema(container, collection, "../../../tests/emails-utf8.parquet");
+            var processor = new ParquetFileProcessor();
+            List<DataEntity> entities;
+            using (var stream = File.Open("../../../tests/emails-utf8.parquet", FileMode.Open))
+            {
+                entities = processor.ParseFileSchema(container, collection, stream);
+            }
 
             foreach (var field in fields)
             {
@@ -69,11 +75,22 @@ namespace DriveSupplyCollectorBaseTests
         {
             var container = new DataContainer();
             var collection = new DataCollection(container, "emails-utf8.parquet");
-            var entity = new DataEntity("FROM_ADDR", DataType.String, "String", container, collection);
 
-            var resolver = new ParquetFileTypeResolver();
-            var samples = resolver.CollectSamples(container, collection, entity, "../../../tests/emails-utf8.parquet", 5);
-            Assert.Contains("sally@example.com", samples);
+            var processor = new ParquetFileProcessor();
+
+            List<DataEntity> entities;
+            using (var stream = File.Open("../../../tests/emails-utf8.parquet", FileMode.Open))
+            {
+                entities = processor.ParseFileSchema(container, collection, stream);
+            }
+
+            var entity = entities.FirstOrDefault(x => x.Name.Equals("FROM_ADDR"));
+            int index = entities.IndexOf(entity);
+
+            using (var stream = File.Open("../../../tests/emails-utf8.parquet", FileMode.Open)) {
+                var samples = processor.CollectSamples(container, collection, entity, index, stream, 5);
+                Assert.Contains("sally@example.com", samples);
+            }
         }
     }
 }

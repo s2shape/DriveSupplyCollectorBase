@@ -1,11 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
 using S2.BlackSwan.SupplyCollector.Models;
 
 namespace DriveSupplyCollectorBase
 {
-    public interface IFileTypeResolver {
+    public interface IFileProcessor {
         /// <summary>
         /// Returns true if this instance can process specified collection file
         /// </summary>
@@ -14,8 +15,8 @@ namespace DriveSupplyCollectorBase
         /// <summary>
         /// Extract file schema
         /// </summary>
-        List<DataEntity> ParseFileSchema(DataContainer container, DataCollection collection, string fileName);
+        List<DataEntity> ParseFileSchema(DataContainer container, DataCollection collection, Stream fileStream);
 
-        List<string> CollectSamples(DataContainer container, DataCollection collection, DataEntity entity, string fileName, int maxSamples);
+        List<string> CollectSamples(DataContainer container, DataCollection collection, DataEntity entity, int entityIndex, Stream fileStream, int maxSamples);
     }
 }

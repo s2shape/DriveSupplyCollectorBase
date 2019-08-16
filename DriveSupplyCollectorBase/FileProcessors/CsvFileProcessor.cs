@@ -1,15 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
 using System.Text.RegularExpressions;
 using S2.BlackSwan.SupplyCollector.Models;
 
-namespace DriveSupplyCollectorBase.FileTypeResolvers
+namespace DriveSupplyCollectorBase.FileProcessors
 {
-    public class CsvFileTypeResolver : IFileTypeResolver
+    public class CsvFileProcessor : IFileProcessor
     {
-        public CsvFileTypeResolver() {
+        public CsvFileProcessor() {
         }
 
         public bool CanProcess(string collectionName) {
@@ -38,14 +37,14 @@ namespace DriveSupplyCollectorBase.FileTypeResolvers
             return DataType.String;
         }
 
-        public List<DataEntity> ParseFileSchema(DataContainer container, DataCollection collection, string fileName) {
+        public List<DataEntity> ParseFileSchema(DataContainer container, DataCollection collection, Stream fileStream) {
             var entities = new List<DataEntity>();
 
             string header = null;
             string line0 = null;
 
             //var encoding = GetEncoding(fileName);
-            using (var reader = new StreamReader(fileName, true)) {
+            using (var reader = new StreamReader(fileStream, true)) {
                 if (!reader.EndOfStream) {
                     header = reader.ReadLine();
                 }
@@ -68,14 +67,10 @@ namespace DriveSupplyCollectorBase.FileTypeResolvers
             return entities;
         }
 
-        public List<string> CollectSamples(DataContainer container, DataCollection collection, DataEntity entity,
-            string fileName, int maxSamples) {
-            var entities = ParseFileSchema(container, collection, fileName);
-            var field = entities.Find(x => x.Name.Equals(entity.Name));
-            var fieldInd = entities.IndexOf(field);
+        public List<string> CollectSamples(DataContainer container, DataCollection collection, DataEntity entity, int entityIndex, Stream fileStream, int maxSamples) {
 
             var samples = new List<string>();
-            using (var reader = new StreamReader(fileName, true)) {
+            using (var reader = new StreamReader(fileStream, true)) {
                 reader.ReadLine();
 
                 while (!reader.EndOfStream && samples.Count < maxSamples) {
@@ -84,8 +79,8 @@ namespace DriveSupplyCollectorBase.FileTypeResolvers
                         continue;
 
                     var cells = line.Split(",");
-                    if (cells.Length > fieldInd) {
-                        samples.Add(cells[fieldInd].Trim());
+                    if (cells.Length > entityIndex) {
+                        samples.Add(cells[entityIndex].Trim());
                     }
                 }
             }

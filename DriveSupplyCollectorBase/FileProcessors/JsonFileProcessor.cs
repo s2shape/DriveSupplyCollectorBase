@@ -1,14 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using S2.BlackSwan.SupplyCollector.Models;
 
-namespace DriveSupplyCollectorBase.FileTypeResolvers
+namespace DriveSupplyCollectorBase.FileProcessors
 {
-    public class JsonFileTypeResolver : IFileTypeResolver
+    public class JsonFileProcessor : IFileProcessor
     {
         public bool CanProcess(string collectionName) {
             return Path.GetExtension(collectionName).Equals(".json", StringComparison.InvariantCultureIgnoreCase);
@@ -53,13 +52,13 @@ namespace DriveSupplyCollectorBase.FileTypeResolvers
             }
         }
 
-        public List<DataEntity> ParseFileSchema(DataContainer container, DataCollection collection, string fileName) {
+        public List<DataEntity> ParseFileSchema(DataContainer container, DataCollection collection, Stream fileStream) {
             var entities = new List<DataEntity>();
 
             var serializer = new JsonSerializer();
 
-            using (var fileStream = File.OpenText(fileName)) {
-                using (var jsonReader = new JsonTextReader(fileStream)) {
+            using (var reader = new StreamReader(fileStream)) {
+                using (var jsonReader = new JsonTextReader(reader)) {
                     var root = serializer.Deserialize(jsonReader);
 
                     if (root is JArray) {
@@ -78,13 +77,13 @@ namespace DriveSupplyCollectorBase.FileTypeResolvers
             return entities;
         }
 
-        public List<string> CollectSamples(DataContainer container, DataCollection collection, DataEntity entity, string fileName, int maxSamples) {
+        public List<string> CollectSamples(DataContainer container, DataCollection collection, DataEntity entity, int entityIndex, Stream fileStream, int maxSamples) {
             var samples = new List<string>();
             var serializer = new JsonSerializer();
 
-            using (var fileStream = File.OpenText(fileName))
+            using (var reader = new StreamReader(fileStream))
             {
-                using (var jsonReader = new JsonTextReader(fileStream))
+                using (var jsonReader = new JsonTextReader(reader))
                 {
                     var root = serializer.Deserialize(jsonReader);
 

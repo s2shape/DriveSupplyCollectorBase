@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using S2.BlackSwan.SupplyCollector;
 using S2.BlackSwan.SupplyCollector.Models;
@@ -7,41 +8,59 @@ using S2.BlackSwan.SupplyCollector.Models;
 namespace DriveSupplyCollectorBase
 {
     public abstract class DriveSupplyCollectorBase : SupplyCollectorBase {
-        private static IFileTypeResolver[] _resolvers = null;
+        private static IFileProcessor[] _processors = null;
 
-        private IFileTypeResolver[] GetResolvers() {
-            if (_resolvers == null) {
-                var resolverInterfaceType = typeof(IFileTypeResolver);
-                var resolverTypes = AppDomain.CurrentDomain
+        private IFileProcessor[] GetProcessors() {
+            if (_processors == null) {
+                var processorInterfaceType = typeof(IFileProcessor);
+                var processorTypes = AppDomain.CurrentDomain
                     .GetAssemblies()
                     .SelectMany(s => s.GetTypes())
-                    .Where(p => resolverInterfaceType.IsAssignableFrom(p));
+                    .Where(p => processorInterfaceType.IsAssignableFrom(p));
 
-                var resolvers = new List<IFileTypeResolver>();
-                foreach (var resolverType in resolverTypes) {
-                    var constructor = resolverType.GetConstructor(new Type[] { });
-                    resolvers.Add((IFileTypeResolver) constructor.Invoke(new object[] { }));
+                var processors = new List<IFileProcessor>();
+                foreach (var processorType in processorTypes) {
+                    var constructor = processorType.GetConstructor(new Type[] { });
+                    processors.Add((IFileProcessor) constructor.Invoke(new object[] { }));
                 }
 
-                _resolvers = resolvers.ToArray();
+                _processors = processors.ToArray();
             }
 
-            return _resolvers;
+            return _processors;
         }
 
-        protected IFileTypeResolver FindResolver(string collectionName) {
-            var resolvers = GetResolvers();
-            foreach (var resolver in resolvers) {
-                if (resolver.CanProcess(collectionName))
-                    return resolver;
+        protected IFileProcessor FindProcessor(string collectionName) {
+            var processors = GetProcessors();
+            foreach (var processor in processors) {
+                if (processor.CanProcess(collectionName))
+                    return processor;
             }
 
             return null;
         }
 
+        protected abstract Stream GetFileStream(DataContainer container, string filePath);
+
+        protected abstract List<DriveFileInfo> ListDriveFiles(DataContainer container);
+
         public override List<string> CollectSample(DataEntity dataEntity, int sampleSize) {
-            
-            throw new NotImplementedException();
+            var processor = FindProcessor(dataEntity.Collection.Name);
+            if (processor == null) {
+                return new List<string>();
+            }
+
+            List<DataEntity> entities;
+            using (var stream = GetFileStream(dataEntity.Container, dataEntity.Collection.Name)) {
+                entities = processor.ParseFileSchema(dataEntity.Container, dataEntity.Collection, stream);
+            }
+
+            int index = entities.IndexOf(entities.Find(x => x.Name.Equals(dataEntity.Name)));
+
+            using (var stream = GetFileStream(dataEntity.Container, dataEntity.Collection.Name)) {
+                return processor.CollectSamples(dataEntity.Container, dataEntity.Collection, dataEntity, index,
+                    stream, sampleSize);
+            }
         }
 
         public override List<DataCollectionMetrics> GetDataCollectionMetrics(DataContainer container) {
@@ -49,7 +68,23 @@ namespace DriveSupplyCollectorBase
         }
 
         public override (List<DataCollection>, List<DataEntity>) GetSchema(DataContainer container) {
-            throw new NotImplementedException();
+            var collections = new List<DataCollection>();
+            var entities = new List<DataEntity>();
+
+            var files = ListDriveFiles(container);
+            foreach (var file in files) {
+                var processor = FindProcessor(file.FilePath);
+
+                if (processor != null) {
+                    var collection = new DataCollection(container, file.FilePath);
+
+                    entities.AddRange(processor.ParseFileSchema(container, collection, GetFileStream(container, file.FilePath)));
+
+                    collections.Add(collection);
+                }
+            }
+
+            return (collections, entities);
         }
     }
 }

@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Text;
-using DriveSupplyCollectorBase.FileTypeResolvers;
+using DriveSupplyCollectorBase.FileProcessors;
 using S2.BlackSwan.SupplyCollector.Models;
 using Xunit;
 using Xunit.Abstractions;
@@ -20,9 +22,9 @@ namespace DriveSupplyCollectorBaseTests
         [Fact]
         public void TestJsonDetect()
         {
-            var resolver = new JsonFileTypeResolver();
+            var processor = new JsonFileProcessor();
 
-            Assert.True(resolver.CanProcess("emails-utf8.json"));
+            Assert.True(processor.CanProcess("emails-utf8.json"));
         }
 
         [Fact]
@@ -52,8 +54,11 @@ namespace DriveSupplyCollectorBaseTests
             var container = new DataContainer();
             var collection = new DataCollection(container, "emails-utf8.json");
 
-            var resolver = new JsonFileTypeResolver();
-            var entities = resolver.ParseFileSchema(container, collection, "../../../tests/emails-utf8.json");
+            var processor = new JsonFileProcessor();
+            List<DataEntity> entities;
+            using (var stream = File.Open("../../../tests/emails-utf8.json", FileMode.Open)) {
+                entities = processor.ParseFileSchema(container, collection, stream);
+            }
 
             foreach (var field in fields)
             {
@@ -69,11 +74,21 @@ namespace DriveSupplyCollectorBaseTests
         {
             var container = new DataContainer();
             var collection = new DataCollection(container, "emails-utf8.json");
-            var entity = new DataEntity("from.addr", DataType.String, "String", container, collection);
 
-            var resolver = new JsonFileTypeResolver();
-            var samples = resolver.CollectSamples(container, collection, entity, "../../../tests/emails-utf8.json", 5);
-            Assert.Contains("sally@example.com", samples);
+            var processor = new JsonFileProcessor();
+            List<DataEntity> entities;
+            using (var stream = File.Open("../../../tests/emails-utf8.json", FileMode.Open))
+            {
+                entities = processor.ParseFileSchema(container, collection, stream);
+            }
+
+            var entity = entities.FirstOrDefault(x => x.Name.Equals("from.addr"));
+            int index = entities.IndexOf(entity);
+            
+            using (var stream = File.Open("../../../tests/emails-utf8.json", FileMode.Open)) {
+                var samples = processor.CollectSamples(container, collection, entity, index, stream, 5);
+                Assert.Contains("sally@example.com", samples);
+            }
         }
     }
 }
