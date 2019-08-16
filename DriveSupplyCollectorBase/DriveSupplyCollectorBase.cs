@@ -29,7 +29,7 @@ namespace DriveSupplyCollectorBase
             return _resolvers;
         }
 
-        private IFileTypeResolver FindResolver(string collectionName) {
+        protected IFileTypeResolver FindResolver(string collectionName) {
             var resolvers = GetResolvers();
             foreach (var resolver in resolvers) {
                 if (resolver.CanProcess(collectionName))

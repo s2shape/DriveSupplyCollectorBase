@@ -7,11 +7,11 @@ using Xunit.Abstractions;
 
 namespace DriveSupplyCollectorBaseTests
 {
-    public class DriveSupplyCollectorBaseTests
+    public class CsvTests
     {
         private readonly ITestOutputHelper output;
 
-        public DriveSupplyCollectorBaseTests(ITestOutputHelper output)
+        public CsvTests(ITestOutputHelper output)
         {
             this.output = output;
         }
@@ -94,6 +94,5 @@ namespace DriveSupplyCollectorBaseTests
                 Assert.Equal(emails[i], samples2[i]);
             }
         }
-
     }
 }
