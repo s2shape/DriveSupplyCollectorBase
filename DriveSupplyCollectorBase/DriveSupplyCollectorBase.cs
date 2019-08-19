@@ -10,6 +10,26 @@ namespace DriveSupplyCollectorBase
     public abstract class DriveSupplyCollectorBase : SupplyCollectorBase {
         private static IFileProcessor[] _processors = null;
 
+        /// <summary>
+        /// Allows the user to specify a prefix which causes the supply collector to start in a sub-folder. Default is null.
+        /// </summary>
+        protected string s2Prefix;
+        /// <summary>
+        /// Allows the user to specify how many nested layers to include in the DataCollection name. Default is 0
+        /// </summary>
+        protected int s2FolderLevels = 0;
+        /// <summary>
+        /// Allows the user to specify whether or not to use the file name in the DataCollection name.  Default is false.
+        /// </summary>
+        protected bool s2UseFileNameInDcName = false;
+
+        protected DriveSupplyCollectorBase(string s2Prefix, int s2FolderLevels, bool s2UseFileNameInDcName) {
+            this.s2Prefix = s2Prefix;
+            this.s2FolderLevels = s2FolderLevels;
+            this.s2UseFileNameInDcName = s2UseFileNameInDcName;
+        }
+
+
         private IFileProcessor[] GetProcessors() {
             if (_processors == null) {
                 var processorInterfaceType = typeof(IFileProcessor);

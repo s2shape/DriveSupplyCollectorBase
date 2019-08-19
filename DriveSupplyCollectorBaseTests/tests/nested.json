@@ -1,0 +1,51 @@
+{
+	"FirstName": "Mikhail",
+	"LastName": "Burilov",
+	"Addresses": 
+	{
+		"Home":
+		{
+			"Street1": "Vishnevaya 18/8",
+			"City": "Sochi",
+			"Zip": "354054"
+		},
+		"Work":
+		{
+			"Street1": "Seversk, Kalinina st",
+			"Street2": "115-201",
+			"Zip": "636037"
+		}
+	},
+	"WorkHistory":
+	[
+		{
+			"Company": "SSP Software",
+			"StartDate": "2006-08-01",
+			"EndDate": "2013-03-01",
+			"ProgrammingLanguages": [
+				"C#", "Java", "C++", "Objective C"
+			],
+			"NewSkills": ["Agile", "Scrum", "TeamCity"]
+		},
+		{
+			"Company": "Kaameleon, Inc",
+			"StartDate": "2013-03-01",
+			"EndDate": "2016-01-01",
+			"ProgrammingLanguages": [
+				"Java"
+			],
+			"NewSkills": ["HL7", "EMR"]
+		}
+	],
+	"Languages":
+	[
+		{
+			"Name": "English",
+			"Level": "Upper intermediate"
+		},
+		{
+			"Name": "Russian",
+			"Level": "Native"
+		}
+	]
+}

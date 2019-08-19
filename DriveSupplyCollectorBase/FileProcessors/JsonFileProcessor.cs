@@ -16,6 +16,10 @@ namespace DriveSupplyCollectorBase.FileProcessors
         private void FillObjectEntities(DataContainer container, DataCollection collection, string prefix, JObject obj, List<DataEntity> entities) {
             var properties = obj.Properties();
             foreach (var property in properties) {
+                if (entities.Find(x => x.Name.Equals($"{prefix}{property.Name}")) != null) {
+                    continue;
+                }
+
                 switch (property.Value.Type) {
                     case JTokenType.Boolean:
                         entities.Add(new DataEntity($"{prefix}{property.Name}", DataType.Boolean, "Boolean", container, collection));
@@ -40,9 +44,19 @@ namespace DriveSupplyCollectorBase.FileProcessors
                         break;
                     case JTokenType.Array:
                         entities.Add(new DataEntity($"{prefix}{property.Name}", DataType.String, "Array", container, collection));
+
+                        var arr = (JArray) property.Value;
+                        for (int i = 0; i < arr.Count; i++) {
+                            var arrayItem = arr[i];
+
+                            if (arrayItem.Type == JTokenType.Object) {
+                                FillObjectEntities(container, collection, $"{prefix}{property.Name}.", (JObject)arrayItem, entities);
+                            }
+                        }
+                        
                         break;
                     case JTokenType.Object:
-                        FillObjectEntities(container, collection, $"{property.Name}.", (JObject)property.Value, entities);
+                        FillObjectEntities(container, collection, $"{prefix}{property.Name}.", (JObject)property.Value, entities);
                         break;
                     default:
                         entities.Add(new DataEntity($"{prefix}{property.Name}",
@@ -62,19 +76,55 @@ namespace DriveSupplyCollectorBase.FileProcessors
                     var root = serializer.Deserialize(jsonReader);
 
                     if (root is JArray) {
-                        var obj = (JObject)((JArray) root).First;
+                        var arr = (JArray) root;
 
-                        if (obj != null) {
-                            FillObjectEntities(container, collection, "", obj, entities);
+                        for(int i=0;i<arr.Count;i++) {
+                            if (arr[i].Type == JTokenType.Object) {
+                                FillObjectEntities(container, collection, "", (JObject)arr[i], entities);
+                            }
                         }
+                    } else if (root is JObject) {
+                        FillObjectEntities(container, collection, "", (JObject)root, entities);
                     }
                     else {
-                        throw new ArgumentException("Array expected!");
+                        throw new ArgumentException("Array or object expected!");
                     }
                 }
             }
 
             return entities;
+        }
+
+        private void FillObjectSamples(DataEntity entity, string prefix, JObject obj, List<string> samples) {
+            var properties = obj.Properties();
+            foreach (var property in properties) {
+                if (!entity.Name.StartsWith($"{prefix}{property.Name}"))
+                    continue;
+
+                if (entity.Name.Equals($"{prefix}{property.Name}")) {
+                    if (property.Value.Type == JTokenType.Array) {
+                        var arr = (JArray) property.Value;
+                        foreach (var item in arr) {
+                            samples.Add(item.ToString());
+                        }
+                    }
+                    else {
+                        samples.Add(property.Value.ToString());
+                    }
+                } else if (property.Value.Type == JTokenType.Array) {
+                    var arr = (JArray)property.Value;
+                    foreach(var arrayItem in arr)
+                    {
+                        if (arrayItem.Type == JTokenType.Object)
+                        {
+                            FillObjectSamples(entity, $"{prefix}{property.Name}.", (JObject)arrayItem, samples);
+                        }
+                    }
+                }
+                else if (property.Value.Type == JTokenType.Object) {
+                    FillObjectSamples(entity, $"{prefix}{property.Name}.", (JObject)property.Value, samples);
+                }
+            }
         }
 
         public List<string> CollectSamples(DataContainer container, DataCollection collection, DataEntity entity, int entityIndex, Stream fileStream, int maxSamples) {
@@ -87,44 +137,25 @@ namespace DriveSupplyCollectorBase.FileProcessors
                 {
                     var root = serializer.Deserialize(jsonReader);
 
-                    if (root is JArray) {
-                        var arr = ((JArray) root);
+                    if (root is JArray)
+                    {
+                        var arr = (JArray)root;
 
-                        for (int j = 0; j < arr.Count && j < maxSamples; j++) {
-                            var obj = (JObject) arr[j];
-
-                            if (obj != null) {
-                                var propertyPath = entity.Name;
-                                var properties = propertyPath.Split(".");
-
-                                for (int i = 0; i < properties.Length; i++) {
-                                    if (i == properties.Length - 1) {
-                                        var token = obj[properties[i]];
-                                        if (token == null) {
-                                            samples.Add(null);
-                                        }
-                                        else {
-                                            samples.Add(token.ToString());
-                                        }
-                                    }
-                                    else {
-                                        obj = obj[properties[i]] as JObject;
-
-                                        if (obj == null) {
-                                            samples.Add(null);
-                                            break;
-                                        }
-                                    }
-                                }
-                            }
-                            else {
-                                samples.Add(null);
+                        for (int i = 0; i < arr.Count; i++)
+                        {
+                            if (arr[i].Type == JTokenType.Object)
+                            {
+                                FillObjectSamples(entity, "", (JObject)arr[i], samples);
                             }
                         }
                     }
+                    else if (root is JObject)
+                    {
+                        FillObjectSamples(entity, "", (JObject)root, samples);
+                    }
                     else
                     {
-                        throw new ArgumentException("Array expected!");
+                        throw new ArgumentException("Array or object expected!");
                     }
                 }
             }

@@ -90,5 +90,59 @@ namespace DriveSupplyCollectorBaseTests
                 Assert.Contains("sally@example.com", samples);
             }
         }
+
+        [Fact]
+        public void TestNestedJson() {
+            var container = new DataContainer();
+            var collection = new DataCollection(container, "nested.json");
+
+            var processor = new JsonFileProcessor();
+            List<DataEntity> entities;
+            using (var stream = File.Open("../../../tests/nested.json", FileMode.Open))
+            {
+                entities = processor.ParseFileSchema(container, collection, stream);
+            }
+
+            var entity1 = entities.Find(x => x.Name.Equals("Addresses.Home.City"));
+            Assert.NotNull(entity1);
+
+            var entity2 = entities.Find(x => x.Name.Equals("Addresses.Work.Street1"));
+            Assert.NotNull(entity2);
+
+            var entity3 = entities.Find(x => x.Name.Equals("Languages.Name"));
+            Assert.NotNull(entity3);
+
+            var entity4 = entities.Find(x => x.Name.Equals("WorkHistory.NewSkills"));
+            Assert.NotNull(entity4);
+
+            using (var stream = File.Open("../../../tests/nested.json", FileMode.Open)) {
+                var samples = processor.CollectSamples(container, collection, entity1, 0, stream, 10);
+                Assert.Equal(1, samples.Count);
+                Assert.Equal("Sochi", samples[0]);
+            }
+
+            using (var stream = File.Open("../../../tests/nested.json", FileMode.Open)) {
+                var samples = processor.CollectSamples(container, collection, entity2, 0, stream, 10);
+                Assert.Equal(1, samples.Count);
+                Assert.Equal("Seversk, Kalinina st", samples[0]);
+            }
+
+            using (var stream = File.Open("../../../tests/nested.json", FileMode.Open)) {
+                var samples = processor.CollectSamples(container, collection, entity3, 0, stream, 10);
+                Assert.Equal(2, samples.Count);
+                Assert.Contains("English", samples);
+                Assert.Contains("Russian", samples);
+            }
+
+            using (var stream = File.Open("../../../tests/nested.json", FileMode.Open)) {
+                var samples = processor.CollectSamples(container, collection, entity4, 0, stream, 10);
+                Assert.Equal(5, samples.Count);
+                Assert.Contains("Agile", samples);
+                Assert.Contains("Scrum", samples);
+                Assert.Contains("TeamCity", samples);
+                Assert.Contains("HL7", samples);
+                Assert.Contains("EMR", samples);
+            }
+        }
     }
 }
