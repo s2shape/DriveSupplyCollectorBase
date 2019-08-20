@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using S2.BlackSwan.SupplyCollector;
 using S2.BlackSwan.SupplyCollector.Models;
 
@@ -23,12 +24,16 @@ namespace DriveSupplyCollectorBase
         /// </summary>
         protected bool s2UseFileNameInDcName = false;
 
+        private Dictionary<string, List<DriveFileInfo>> _fileDcMapping = null;
+        private Dictionary<string, int> _fileEntityMapping = null;
+        private List<DataCollection> _collections = null;
+        private List<DataEntity> _entities = null;
+
         protected DriveSupplyCollectorBase(string s2Prefix, int s2FolderLevels, bool s2UseFileNameInDcName) {
             this.s2Prefix = s2Prefix;
             this.s2FolderLevels = s2FolderLevels;
             this.s2UseFileNameInDcName = s2UseFileNameInDcName;
         }
-
 
         private IFileProcessor[] GetProcessors() {
             if (_processors == null) {
@@ -68,48 +73,113 @@ namespace DriveSupplyCollectorBase
         protected abstract List<DriveFileInfo> ListDriveFiles(DataContainer container);
 
         public override List<string> CollectSample(DataEntity dataEntity, int sampleSize) {
-            var processor = FindProcessor(dataEntity.Collection.Name);
-            if (processor == null) {
+            if (_fileDcMapping == null || !_fileDcMapping.ContainsKey(dataEntity.Name)) {
+                GetSchema(dataEntity.Container);
+            }
+
+            if (!_fileDcMapping.ContainsKey(dataEntity.Collection.Name)) {
                 return new List<string>();
             }
 
-            List<DataEntity> entities;
-            using (var stream = GetFileStream(dataEntity.Container, dataEntity.Collection.Name)) {
-                entities = processor.ParseFileSchema(dataEntity.Container, dataEntity.Collection, stream);
+            var samples = new List<string>();
+
+            var files = _fileDcMapping[dataEntity.Collection.Name];
+            foreach (var file in files) {
+                var processor = FindProcessor(file.FilePath);
+                if (processor == null)
+                    continue;
+                if(!_fileEntityMapping.ContainsKey($"{file.FilePath};{dataEntity.Name}"))
+                    continue;
+
+                int index = _fileEntityMapping[$"{file.FilePath};{dataEntity.Name}"];
+
+                using (var stream = GetFileStream(dataEntity.Container, file.FilePath)) {
+                    samples.AddRange(processor.CollectSamples(dataEntity.Container, dataEntity.Collection, dataEntity,
+                        index,
+                        stream, sampleSize));
+                }
             }
 
-            int index = entities.IndexOf(entities.Find(x => x.Name.Equals(dataEntity.Name)));
-            if (index < 0)
-                throw new ArgumentException("Entity not found in schema!");
-
-            using (var stream = GetFileStream(dataEntity.Container, dataEntity.Collection.Name)) {
-                return processor.CollectSamples(dataEntity.Container, dataEntity.Collection, dataEntity, index,
-                    stream, sampleSize);
-            }
+            return samples;
         }
 
         public override List<DataCollectionMetrics> GetDataCollectionMetrics(DataContainer container) {
-            throw new NotImplementedException();
+            if (_fileDcMapping == null) {
+                GetSchema(container);
+            }
+
+            var result = new List<DataCollectionMetrics>();
+            foreach (var mappingPair in _fileDcMapping) {
+
+
+                result.Add(new DataCollectionMetrics() {
+                    Name = mappingPair.Key,
+                    TotalSpaceKB = 0
+                });
+            }
+
+            return result;
+        }
+
+        protected string BuildDataCollectionName(string path) {
+            var parts = path.Split(new char[] {'/', '\\'});
+
+            var result = new StringBuilder();
+
+            for (int i = 0; i < parts.Length - 1 && i < s2FolderLevels; i++) {
+                if(i > 0)
+                    result.Append("/");
+                result.Append(parts[i]);
+            }
+
+            if (s2UseFileNameInDcName || s2FolderLevels == 0) {
+                if(result.Length>0)
+                    result.Append("/");
+
+                result.Append(parts[parts.Length - 1]);
+            }
+
+            return result.ToString();
         }
 
         public override (List<DataCollection>, List<DataEntity>) GetSchema(DataContainer container) {
-            var collections = new List<DataCollection>();
-            var entities = new List<DataEntity>();
+            _fileDcMapping = new Dictionary<string, List<DriveFileInfo>>();
+            _fileEntityMapping = new Dictionary<string, int>();
+            _collections = new List<DataCollection>();
+            _entities = new List<DataEntity>();
 
             var files = ListDriveFiles(container);
             foreach (var file in files) {
                 var processor = FindProcessor(file.FilePath);
 
                 if (processor != null) {
-                    var collection = new DataCollection(container, file.FilePath);
+                    var collectionName = BuildDataCollectionName(file.FilePath);
 
-                    entities.AddRange(processor.ParseFileSchema(container, collection, GetFileStream(container, file.FilePath)));
+                    if (!_fileDcMapping.ContainsKey(collectionName)) {
+                        _fileDcMapping.Add(collectionName, new List<DriveFileInfo>());
+                    }
+                    _fileDcMapping[collectionName].Add(file);
 
-                    collections.Add(collection);
+                    var collection = _collections.Find(x => x.Name.Equals(collectionName));
+                    if (collection == null) {
+                        collection = new DataCollection(container, collectionName);
+                        _collections.Add(collection);
+                    }
+
+                    var fileEntities =
+                        processor.ParseFileSchema(container, collection, GetFileStream(container, file.FilePath));
+
+                    int index = 0;
+                    foreach (var entity in fileEntities) {
+                        _fileEntityMapping.Add($"{file.FilePath};{entity.Name}", index++);
+
+                        if(!_entities.Exists(x => x.Name.Equals(entity.Name) && entity.Collection == x.Collection))
+                            _entities.Add(entity);
+                    }
                 }
             }
 
-            return (collections, entities);
+            return (_collections, _entities);
         }
     }
 }
