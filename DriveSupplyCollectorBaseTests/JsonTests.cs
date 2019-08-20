@@ -54,11 +54,13 @@ namespace DriveSupplyCollectorBaseTests
             var container = new DataContainer();
             var collection = new DataCollection(container, "emails-utf8.json");
 
+            long rowCount;
             var processor = new JsonFileProcessor();
             List<DataEntity> entities;
             using (var stream = File.Open("../../../tests/emails-utf8.json", FileMode.Open)) {
-                entities = processor.ParseFileSchema(container, collection, stream);
+                entities = processor.ParseFileSchema(container, collection, stream, out rowCount);
             }
+            Assert.Equal(200, rowCount);
 
             foreach (var field in fields)
             {
@@ -75,11 +77,12 @@ namespace DriveSupplyCollectorBaseTests
             var container = new DataContainer();
             var collection = new DataCollection(container, "emails-utf8.json");
 
+            long rowCount;
             var processor = new JsonFileProcessor();
             List<DataEntity> entities;
             using (var stream = File.Open("../../../tests/emails-utf8.json", FileMode.Open))
             {
-                entities = processor.ParseFileSchema(container, collection, stream);
+                entities = processor.ParseFileSchema(container, collection, stream, out rowCount);
             }
 
             var entity = entities.FirstOrDefault(x => x.Name.Equals("from.addr"));
@@ -96,12 +99,14 @@ namespace DriveSupplyCollectorBaseTests
             var container = new DataContainer();
             var collection = new DataCollection(container, "nested.json");
 
+            long rowCount;
             var processor = new JsonFileProcessor();
             List<DataEntity> entities;
             using (var stream = File.Open("../../../tests/nested.json", FileMode.Open))
             {
-                entities = processor.ParseFileSchema(container, collection, stream);
+                entities = processor.ParseFileSchema(container, collection, stream, out rowCount);
             }
+            Assert.Equal(1, rowCount);
 
             var entity1 = entities.Find(x => x.Name.Equals("Addresses.Home.City"));
             Assert.NotNull(entity1);

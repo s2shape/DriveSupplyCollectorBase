@@ -35,6 +35,25 @@ namespace DriveSupplyCollectorBase
             this.s2UseFileNameInDcName = s2UseFileNameInDcName;
         }
 
+        protected void ParseConnectionStringAdditions(string additions) {
+            var parts = additions.Split(",");
+            foreach (var part in parts) {
+                if(String.IsNullOrEmpty(part))
+                    continue;
+
+                var pair = part.Split("=");
+                if (pair.Length == 2) {
+                    if ("s2-prefix".Equals(pair[0])) {
+                        s2Prefix = pair[1];
+                    } else if ("s2-folder-levels-used-in-dc-name".Equals(pair[0])) {
+                        s2FolderLevels = Int32.Parse(pair[1]);
+                    } else if ("s2-use-file-name-in-dc-name".Equals(pair[0])) {
+                        s2UseFileNameInDcName = Boolean.Parse(pair[1]);
+                    }
+                }
+            }
+        }
+
         private IFileProcessor[] GetProcessors() {
             if (_processors == null) {
                 var processorInterfaceType = typeof(IFileProcessor);
@@ -110,11 +129,14 @@ namespace DriveSupplyCollectorBase
 
             var result = new List<DataCollectionMetrics>();
             foreach (var mappingPair in _fileDcMapping) {
-
+                long size = 0;
+                foreach (var fileInfo in mappingPair.Value) {
+                    size += fileInfo.FileSize;
+                }
 
                 result.Add(new DataCollectionMetrics() {
                     Name = mappingPair.Key,
-                    TotalSpaceKB = 0
+                    TotalSpaceKB = (decimal)size / 1024
                 });
             }
 
@@ -166,8 +188,10 @@ namespace DriveSupplyCollectorBase
                         _collections.Add(collection);
                     }
 
+                    long rowCount;
                     var fileEntities =
-                        processor.ParseFileSchema(container, collection, GetFileStream(container, file.FilePath));
+                        processor.ParseFileSchema(container, collection, GetFileStream(container, file.FilePath), out rowCount);
+                    file.RowCount = rowCount;
 
                     int index = 0;
                     foreach (var entity in fileEntities) {

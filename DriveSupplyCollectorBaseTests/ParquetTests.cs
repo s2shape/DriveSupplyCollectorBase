@@ -56,10 +56,13 @@ namespace DriveSupplyCollectorBaseTests
 
             var processor = new ParquetFileProcessor();
             List<DataEntity> entities;
+            long rowCount = 0;
             using (var stream = File.Open("../../../tests/emails-utf8.parquet", FileMode.Open))
             {
-                entities = processor.ParseFileSchema(container, collection, stream);
+                entities = processor.ParseFileSchema(container, collection, stream, out rowCount);
             }
+
+            Assert.Equal(200, rowCount);
 
             foreach (var field in fields)
             {
@@ -78,10 +81,11 @@ namespace DriveSupplyCollectorBaseTests
 
             var processor = new ParquetFileProcessor();
 
+            long rowCount;
             List<DataEntity> entities;
             using (var stream = File.Open("../../../tests/emails-utf8.parquet", FileMode.Open))
             {
-                entities = processor.ParseFileSchema(container, collection, stream);
+                entities = processor.ParseFileSchema(container, collection, stream, out rowCount);
             }
 
             var entity = entities.FirstOrDefault(x => x.Name.Equals("FROM_ADDR"));

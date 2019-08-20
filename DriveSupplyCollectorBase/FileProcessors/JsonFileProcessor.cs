@@ -66,10 +66,11 @@ namespace DriveSupplyCollectorBase.FileProcessors
             }
         }
 
-        public List<DataEntity> ParseFileSchema(DataContainer container, DataCollection collection, Stream fileStream) {
+        public List<DataEntity> ParseFileSchema(DataContainer container, DataCollection collection, Stream fileStream, out long rowCount) {
             var entities = new List<DataEntity>();
 
             var serializer = new JsonSerializer();
+            rowCount = 0;
 
             using (var reader = new StreamReader(fileStream)) {
                 using (var jsonReader = new JsonTextReader(reader)) {
@@ -77,6 +78,7 @@ namespace DriveSupplyCollectorBase.FileProcessors
 
                     if (root is JArray) {
                         var arr = (JArray) root;
+                        rowCount = arr.Count;
 
                         for(int i=0;i<arr.Count;i++) {
                             if (arr[i].Type == JTokenType.Object) {
@@ -84,6 +86,7 @@ namespace DriveSupplyCollectorBase.FileProcessors
                             }
                         }
                     } else if (root is JObject) {
+                        rowCount = 1;
                         FillObjectEntities(container, collection, "", (JObject)root, entities);
                     }
                     else {

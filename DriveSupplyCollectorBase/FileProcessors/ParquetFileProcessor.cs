@@ -30,7 +30,7 @@ namespace DriveSupplyCollectorBase.FileProcessors
             return DataType.Unknown;
         }
 
-        public List<DataEntity> ParseFileSchema(DataContainer container, DataCollection collection, Stream fileStream) {
+        public List<DataEntity> ParseFileSchema(DataContainer container, DataCollection collection, Stream fileStream, out long rowCount) {
             var entities = new List<DataEntity>();
 
             var options = new ParquetOptions {TreatByteArrayAsString = true};
@@ -41,6 +41,12 @@ namespace DriveSupplyCollectorBase.FileProcessors
             foreach (var field in fields) {
                 entities.Add(new DataEntity(field.Name, ConvertDataType(field.DataType),
                     Enum.GetName(typeof(Parquet.Data.DataType), field.DataType), container, collection));
+            }
+
+            rowCount = 0;
+            for (int i = 0; i < reader.RowGroupCount; i++) {
+                var columns = reader.ReadEntireRowGroup(i);
+                rowCount += columns[0].Data.Length;
             }
 
             return entities;

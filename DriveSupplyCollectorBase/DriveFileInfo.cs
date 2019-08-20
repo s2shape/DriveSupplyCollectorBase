@@ -8,5 +8,6 @@ namespace DriveSupplyCollectorBase
     {
         public string FilePath { get; set; }
         public long FileSize { get; set; }
+        public long RowCount { get; set; }
     }
 }

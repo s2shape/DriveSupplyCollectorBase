@@ -51,11 +51,14 @@ namespace DriveSupplyCollectorBaseTests
             var container = new DataContainer();
             var collection = new DataCollection(container, "emails-utf8.csv");
 
+            long rowCount;
             var processor = new CsvFileProcessor();
             List<DataEntity> entities;
             using (var stream = File.Open("../../../tests/emails-utf8.csv", FileMode.Open)) {
-                entities = processor.ParseFileSchema(container, collection, stream);
+                entities = processor.ParseFileSchema(container, collection, stream, out rowCount);
             }
+
+            Assert.Equal(200, rowCount);
 
             foreach (var field in fields) {
                 output.WriteLine($" check field {field.Key}");
@@ -73,10 +76,11 @@ namespace DriveSupplyCollectorBaseTests
 
             var processor = new CsvFileProcessor();
 
+            long rowCount;
             List<DataEntity> entities;
             using (var stream = File.Open("../../../tests/emails-utf8.csv", FileMode.Open))
             {
-                entities = processor.ParseFileSchema(container, collection, stream);
+                entities = processor.ParseFileSchema(container, collection, stream, out rowCount);
             }
 
             var entity = entities.FirstOrDefault(x => x.Name.Equals("FROM_ADDR"));
@@ -100,10 +104,11 @@ namespace DriveSupplyCollectorBaseTests
 
             var processor = new CsvFileProcessor();
 
+            long rowCount;
             List<DataEntity> entities;
             using (var stream = File.Open("../../../tests/emails-utf8.csv", FileMode.Open))
             {
-                entities = processor.ParseFileSchema(container, collection1, stream);
+                entities = processor.ParseFileSchema(container, collection1, stream, out rowCount);
             }
             var entity = entities.FirstOrDefault(x => x.Name.Equals("FROM_ADDR"));
             int index = entities.IndexOf(entity);

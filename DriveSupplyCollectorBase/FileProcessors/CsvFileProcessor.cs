@@ -37,19 +37,25 @@ namespace DriveSupplyCollectorBase.FileProcessors
             return DataType.String;
         }
 
-        public List<DataEntity> ParseFileSchema(DataContainer container, DataCollection collection, Stream fileStream) {
+        public List<DataEntity> ParseFileSchema(DataContainer container, DataCollection collection, Stream fileStream, out long rowCount) {
             var entities = new List<DataEntity>();
 
             string header = null;
             string line0 = null;
+            rowCount = 0;
 
             //var encoding = GetEncoding(fileName);
             using (var reader = new StreamReader(fileStream, true)) {
                 if (!reader.EndOfStream) {
                     header = reader.ReadLine();
                 }
-                if (!reader.EndOfStream) {
-                    line0 = reader.ReadLine();
+                while (!reader.EndOfStream) {
+                    rowCount++;
+
+                    var line = reader.ReadLine();
+                    if (line0 == null) {
+                        line0 = line;
+                    }
                 }
             }
 
