@@ -27,7 +27,7 @@ namespace DriveSupplyCollectorBase
         /// <summary>
         /// True if .csv files do not have header
         /// </summary>
-        protected bool s2CsvNoHeader = false;
+        protected bool csvHasHeader = true;
 
         private Dictionary<string, List<DriveFileInfo>> _fileDcMapping = null;
         private Dictionary<string, int> _fileEntityMapping = null;
@@ -54,8 +54,8 @@ namespace DriveSupplyCollectorBase
                         s2FolderLevels = Int32.Parse(pair[1]);
                     } else if ("s2-use-file-name-in-dc-name".Equals(pair[0])) {
                         s2UseFileNameInDcName = Boolean.Parse(pair[1]);
-                    } else if ("s2-csv-no-header".Equals(pair[0])) {
-                        s2CsvNoHeader = Boolean.Parse(pair[1]);
+                    } else if ("csv_has_header".Equals(pair[0])) {
+                        csvHasHeader = Boolean.Parse(pair[1]);
                     }
                 }
             }
@@ -69,7 +69,7 @@ namespace DriveSupplyCollectorBase
                     .SelectMany(s => s.GetTypes())
                     .Where(p => processorInterfaceType.IsAssignableFrom(p));
 
-                var args = new Dictionary<string, object> {{"csv-no-header", s2CsvNoHeader}};
+                var args = new Dictionary<string, object> {{"csv_has_header", csvHasHeader } };
 
                 var processors = new List<IFileProcessor>();
                 foreach (var processorType in processorTypes) {

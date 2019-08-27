@@ -148,7 +148,7 @@ namespace DriveSupplyCollectorBaseTests
             var collection = new DataCollection(container, "no-header.csv");
 
             long rowCount;
-            var processor = new CsvFileProcessor(new Dictionary<string, object> {{"csv-no-header", true}});
+            var processor = new CsvFileProcessor(new Dictionary<string, object> {{"csv_has_header", false}});
             List<DataEntity> entities;
             using (var stream = File.Open("../../../tests/no-header.csv", FileMode.Open))
             {

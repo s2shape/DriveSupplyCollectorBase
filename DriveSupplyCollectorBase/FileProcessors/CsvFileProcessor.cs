@@ -8,15 +8,15 @@ using S2.BlackSwan.SupplyCollector.Models;
 namespace DriveSupplyCollectorBase.FileProcessors
 {
     public class CsvFileProcessor : IFileProcessor {
-        private bool csvNoHeader = false;
+        private bool csvHasHeader = true;
 
         public CsvFileProcessor() {
         }
 
         public CsvFileProcessor(Dictionary<string, object> args) {
             foreach (var arg in args) {
-                if (arg.Key.Equals("csv-no-header")) {
-                    csvNoHeader = (bool) arg.Value;
+                if (arg.Key.Equals("csv_has_header")) {
+                    csvHasHeader = (bool) arg.Value;
                 }
             }
         }
@@ -56,7 +56,7 @@ namespace DriveSupplyCollectorBase.FileProcessors
 
             //var encoding = GetEncoding(fileName);
             using (var reader = new StreamReader(fileStream, true)) {
-                if (!csvNoHeader && !reader.EndOfStream) {
+                if (csvHasHeader && !reader.EndOfStream) {
                     header = reader.ReadLine();
                 }
                 while (!reader.EndOfStream) {
@@ -69,18 +69,19 @@ namespace DriveSupplyCollectorBase.FileProcessors
                 }
             }
 
-            if ((csvNoHeader || !String.IsNullOrEmpty(header)) && !String.IsNullOrEmpty(line0)) {
+            if ((!csvHasHeader || !String.IsNullOrEmpty(header)) && !String.IsNullOrEmpty(line0)) {
                 var lineParts = line0.Split(",");
 
                 string[] headerParts;
-                if (csvNoHeader) {
-                    headerParts = new string[lineParts.Length];
-                    for (int i = 0; i < headerParts.Length; i++) {
-                        headerParts[i] = $"column{i}";
-                    }
+                if (csvHasHeader) {
+                    headerParts = header.Split(",");
                 }
                 else {
-                    headerParts = header.Split(",");
+                    headerParts = new string[lineParts.Length];
+                    for (int i = 0; i < headerParts.Length; i++)
+                    {
+                        headerParts[i] = $"column{i}";
+                    }
                 }
 
                 for (int i = 0; i < headerParts.Length && i < lineParts.Length; i++) {
