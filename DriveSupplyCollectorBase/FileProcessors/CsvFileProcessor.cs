@@ -1,14 +1,24 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.RegularExpressions;
 using S2.BlackSwan.SupplyCollector.Models;
 
 namespace DriveSupplyCollectorBase.FileProcessors
 {
-    public class CsvFileProcessor : IFileProcessor
-    {
+    public class CsvFileProcessor : IFileProcessor {
+        private bool csvNoHeader = false;
+
         public CsvFileProcessor() {
+        }
+
+        public CsvFileProcessor(Dictionary<string, object> args) {
+            foreach (var arg in args) {
+                if (arg.Key.Equals("csv-no-header")) {
+                    csvNoHeader = (bool) arg.Value;
+                }
+            }
         }
 
         public bool CanProcess(string collectionName) {
@@ -46,7 +56,7 @@ namespace DriveSupplyCollectorBase.FileProcessors
 
             //var encoding = GetEncoding(fileName);
             using (var reader = new StreamReader(fileStream, true)) {
-                if (!reader.EndOfStream) {
+                if (!csvNoHeader && !reader.EndOfStream) {
                     header = reader.ReadLine();
                 }
                 while (!reader.EndOfStream) {
@@ -59,9 +69,19 @@ namespace DriveSupplyCollectorBase.FileProcessors
                 }
             }
 
-            if (!String.IsNullOrEmpty(header) && !String.IsNullOrEmpty(line0)) {
-                var headerParts = header.Split(",");
+            if ((csvNoHeader || !String.IsNullOrEmpty(header)) && !String.IsNullOrEmpty(line0)) {
                 var lineParts = line0.Split(",");
+
+                string[] headerParts;
+                if (csvNoHeader) {
+                    headerParts = new string[lineParts.Length];
+                    for (int i = 0; i < headerParts.Length; i++) {
+                        headerParts[i] = $"column{i}";
+                    }
+                }
+                else {
+                    headerParts = header.Split(",");
+                }
 
                 for (int i = 0; i < headerParts.Length && i < lineParts.Length; i++) {
                     var dataType = DetectDataType(lineParts[i].Trim());

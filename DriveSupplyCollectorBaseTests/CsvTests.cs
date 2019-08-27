@@ -134,5 +134,36 @@ namespace DriveSupplyCollectorBaseTests
                 Assert.Equal(emails[i], samples2[i]);
             }
         }
+
+        [Fact]
+        public void TestCsvNoHeaderSchema()
+        {
+            var fields = new Dictionary<string, DataType>() {
+                {"column0", DataType.Int},
+                {"column1", DataType.String},
+                {"column2", DataType.Boolean}
+            };
+
+            var container = new DataContainer();
+            var collection = new DataCollection(container, "no-header.csv");
+
+            long rowCount;
+            var processor = new CsvFileProcessor(new Dictionary<string, object> {{"csv-no-header", true}});
+            List<DataEntity> entities;
+            using (var stream = File.Open("../../../tests/no-header.csv", FileMode.Open))
+            {
+                entities = processor.ParseFileSchema(container, collection, stream, out rowCount);
+            }
+
+            Assert.Equal(1, rowCount);
+
+            foreach (var field in fields)
+            {
+                output.WriteLine($" check field {field.Key}");
+                var entity = entities.Find(x => x.Name.Equals(field.Key));
+                Assert.NotNull(entity);
+                Assert.Equal(field.Value, entity.DataType);
+            }
+        }
     }
 }
