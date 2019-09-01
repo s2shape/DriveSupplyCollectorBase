@@ -89,7 +89,7 @@ namespace DriveSupplyCollectorBaseTests
             
             using (var stream = File.Open("../../../tests/emails-utf8.csv", FileMode.Open)) {
                 var samples =
-                    processor.CollectSamples(container, collection, entity, index, stream, 5);
+                    processor.CollectSamples(container, collection, entity, index, stream, 5, 1);
                 Assert.Contains("sally@example.com", samples);
             }
         }
@@ -118,12 +118,12 @@ namespace DriveSupplyCollectorBaseTests
 
             using (var stream = File.Open("../../../tests/emails-utf8.csv", FileMode.Open)) {
                 samples1 = processor.CollectSamples(container, collection1, entity, index, stream,
-                    emails.Length);
+                    emails.Length, 1);
             }
 
             using (var stream = File.Open("../../../tests/emails-utf16.csv", FileMode.Open)) {
                 samples2 = processor.CollectSamples(container, collection2, entity, index, stream,
-                    emails.Length);
+                    emails.Length, 1);
             }
 
             Assert.Equal(emails.Length, samples1.Count);

@@ -92,7 +92,7 @@ namespace DriveSupplyCollectorBaseTests
             int index = entities.IndexOf(entity);
 
             using (var stream = File.Open("../../../tests/emails-utf8.parquet", FileMode.Open)) {
-                var samples = processor.CollectSamples(container, collection, entity, index, stream, 5);
+                var samples = processor.CollectSamples(container, collection, entity, index, stream, 5, 1);
                 Assert.Contains("sally@example.com", samples);
             }
         }

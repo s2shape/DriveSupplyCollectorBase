@@ -89,7 +89,7 @@ namespace DriveSupplyCollectorBaseTests
             int index = entities.IndexOf(entity);
             
             using (var stream = File.Open("../../../tests/emails-utf8.json", FileMode.Open)) {
-                var samples = processor.CollectSamples(container, collection, entity, index, stream, 5);
+                var samples = processor.CollectSamples(container, collection, entity, index, stream, 5, 1);
                 Assert.Contains("sally@example.com", samples);
             }
         }
@@ -121,26 +121,26 @@ namespace DriveSupplyCollectorBaseTests
             Assert.NotNull(entity4);
 
             using (var stream = File.Open("../../../tests/nested.json", FileMode.Open)) {
-                var samples = processor.CollectSamples(container, collection, entity1, 0, stream, 10);
+                var samples = processor.CollectSamples(container, collection, entity1, 0, stream, 10, 1);
                 Assert.Equal(1, samples.Count);
                 Assert.Equal("Sochi", samples[0]);
             }
 
             using (var stream = File.Open("../../../tests/nested.json", FileMode.Open)) {
-                var samples = processor.CollectSamples(container, collection, entity2, 0, stream, 10);
+                var samples = processor.CollectSamples(container, collection, entity2, 0, stream, 10, 1);
                 Assert.Equal(1, samples.Count);
                 Assert.Equal("Seversk, Kalinina st", samples[0]);
             }
 
             using (var stream = File.Open("../../../tests/nested.json", FileMode.Open)) {
-                var samples = processor.CollectSamples(container, collection, entity3, 0, stream, 10);
+                var samples = processor.CollectSamples(container, collection, entity3, 0, stream, 10, 1);
                 Assert.Equal(2, samples.Count);
                 Assert.Contains("English", samples);
                 Assert.Contains("Russian", samples);
             }
 
             using (var stream = File.Open("../../../tests/nested.json", FileMode.Open)) {
-                var samples = processor.CollectSamples(container, collection, entity4, 0, stream, 10);
+                var samples = processor.CollectSamples(container, collection, entity4, 0, stream, 10, 1);
                 Assert.Equal(5, samples.Count);
                 Assert.Contains("Agile", samples);
                 Assert.Contains("Scrum", samples);

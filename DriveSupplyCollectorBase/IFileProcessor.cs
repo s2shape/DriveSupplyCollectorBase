@@ -17,6 +17,6 @@ namespace DriveSupplyCollectorBase
         /// </summary>
         List<DataEntity> ParseFileSchema(DataContainer container, DataCollection collection, Stream fileStream, out long rowCount);
 
-        List<string> CollectSamples(DataContainer container, DataCollection collection, DataEntity entity, int entityIndex, Stream fileStream, int maxSamples);
+        List<string> CollectSamples(DataContainer container, DataCollection collection, DataEntity entity, int entityIndex, Stream fileStream, int maxSamples, double probability);
     }
 }

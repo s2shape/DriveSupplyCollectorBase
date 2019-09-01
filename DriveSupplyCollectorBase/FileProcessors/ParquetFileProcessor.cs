@@ -52,8 +52,9 @@ namespace DriveSupplyCollectorBase.FileProcessors
             return entities;
         }
 
-        public List<string> CollectSamples(DataContainer container, DataCollection collection, DataEntity entity, int entityIndex, Stream fileStream, int maxSamples) {
+        public List<string> CollectSamples(DataContainer container, DataCollection collection, DataEntity entity, int entityIndex, Stream fileStream, int maxSamples, double probability) {
             var result = new List<string>();
+            var rand = new Random();
 
             var options = new ParquetOptions {TreatByteArrayAsString = true};
             var reader = new ParquetReader(fileStream, options);
@@ -64,9 +65,11 @@ namespace DriveSupplyCollectorBase.FileProcessors
                 var column = columns.FirstOrDefault(x => x.Field.Name.Equals(entity.Name));
                 if (column != null) {
                     for (int j = 0; j < column.Data.Length; j++) {
-                        result.Add(column.Data.GetValue(j)?.ToString());
-                        if (result.Count >= maxSamples)
-                            break;
+                        if (rand.NextDouble() < probability) {
+                            result.Add(column.Data.GetValue(j)?.ToString());
+                            if (result.Count >= maxSamples)
+                                break;
+                        }
                     }
                 }
 

@@ -40,7 +40,7 @@ namespace DriveSupplyCollectorBase
             this.s2UseFileNameInDcName = s2UseFileNameInDcName;
         }
 
-        protected void ParseConnectionStringAdditions(string additions) {
+        protected virtual void ParseConnectionStringAdditions(string additions) {
             var parts = additions.Split(",");
             foreach (var part in parts) {
                 if(String.IsNullOrEmpty(part))
@@ -119,6 +119,14 @@ namespace DriveSupplyCollectorBase
             var samples = new List<string>();
 
             var files = _fileDcMapping[dataEntity.Collection.Name];
+
+            long totalRowCount = 0;
+            foreach (var file in files) {
+                totalRowCount += file.RowCount;
+            }
+
+            double probability = totalRowCount == 0 ? 1.0d : (double) sampleSize / totalRowCount;
+
             foreach (var file in files) {
                 var processor = FindProcessor(file.FilePath);
                 if (processor == null)
@@ -131,7 +139,7 @@ namespace DriveSupplyCollectorBase
                 using (var stream = GetFileStream(dataEntity.Container, file.FilePath)) {
                     samples.AddRange(processor.CollectSamples(dataEntity.Container, dataEntity.Collection, dataEntity,
                         index,
-                        stream, sampleSize));
+                        stream, sampleSize, probability));
                 }
             }
 

@@ -98,7 +98,9 @@ namespace DriveSupplyCollectorBase.FileProcessors
             return entities;
         }
 
-        private void FillObjectSamples(DataEntity entity, string prefix, JObject obj, List<string> samples) {
+        private void FillObjectSamples(DataEntity entity, string prefix, JObject obj, List<string> samples, double probability) {
+            var rand = new Random();
+
             var properties = obj.Properties();
             foreach (var property in properties) {
                 if (!entity.Name.StartsWith($"{prefix}{property.Name}"))
@@ -108,11 +110,15 @@ namespace DriveSupplyCollectorBase.FileProcessors
                     if (property.Value.Type == JTokenType.Array) {
                         var arr = (JArray) property.Value;
                         foreach (var item in arr) {
-                            samples.Add(item.ToString());
+                            if (rand.NextDouble() < probability) {
+                                samples.Add(item.ToString());
+                            }
                         }
                     }
                     else {
-                        samples.Add(property.Value.ToString());
+                        if (rand.NextDouble() < probability) {
+                            samples.Add(property.Value.ToString());
+                        }
                     }
                 } else if (property.Value.Type == JTokenType.Array) {
                     var arr = (JArray)property.Value;
@@ -120,17 +126,17 @@ namespace DriveSupplyCollectorBase.FileProcessors
                     {
                         if (arrayItem.Type == JTokenType.Object)
                         {
-                            FillObjectSamples(entity, $"{prefix}{property.Name}.", (JObject)arrayItem, samples);
+                            FillObjectSamples(entity, $"{prefix}{property.Name}.", (JObject)arrayItem, samples, probability);
                         }
                     }
                 }
                 else if (property.Value.Type == JTokenType.Object) {
-                    FillObjectSamples(entity, $"{prefix}{property.Name}.", (JObject)property.Value, samples);
+                    FillObjectSamples(entity, $"{prefix}{property.Name}.", (JObject)property.Value, samples, probability);
                 }
             }
         }
 
-        public List<string> CollectSamples(DataContainer container, DataCollection collection, DataEntity entity, int entityIndex, Stream fileStream, int maxSamples) {
+        public List<string> CollectSamples(DataContainer container, DataCollection collection, DataEntity entity, int entityIndex, Stream fileStream, int maxSamples, double probability) {
             var samples = new List<string>();
             var serializer = new JsonSerializer();
 
@@ -148,13 +154,13 @@ namespace DriveSupplyCollectorBase.FileProcessors
                         {
                             if (arr[i].Type == JTokenType.Object)
                             {
-                                FillObjectSamples(entity, "", (JObject)arr[i], samples);
+                                FillObjectSamples(entity, "", (JObject)arr[i], samples, probability);
                             }
                         }
                     }
                     else if (root is JObject)
                     {
-                        FillObjectSamples(entity, "", (JObject)root, samples);
+                        FillObjectSamples(entity, "", (JObject)root, samples, probability);
                     }
                     else
                     {

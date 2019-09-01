@@ -94,7 +94,8 @@ namespace DriveSupplyCollectorBase.FileProcessors
             return entities;
         }
 
-        public List<string> CollectSamples(DataContainer container, DataCollection collection, DataEntity entity, int entityIndex, Stream fileStream, int maxSamples) {
+        public List<string> CollectSamples(DataContainer container, DataCollection collection, DataEntity entity, int entityIndex, Stream fileStream, int maxSamples, double probability) {
+            var rand = new Random();
 
             var samples = new List<string>();
             using (var reader = new StreamReader(fileStream, true)) {
@@ -105,9 +106,11 @@ namespace DriveSupplyCollectorBase.FileProcessors
                     if (String.IsNullOrEmpty(line))
                         continue;
 
-                    var cells = line.Split(",");
-                    if (entityIndex < cells.Length) {
-                        samples.Add(cells[entityIndex].Trim());
+                    if (rand.NextDouble() < probability) {
+                        var cells = line.Split(",");
+                        if (entityIndex < cells.Length) {
+                            samples.Add(cells[entityIndex].Trim());
+                        }
                     }
                 }
             }
