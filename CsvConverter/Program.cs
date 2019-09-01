@@ -195,6 +195,54 @@ namespace CsvConverter
             File.WriteAllText(outputFile, json);
         }
 
+        static void ConvertCsvToRedis(string inputFile, string outputFile)
+        {
+            using (var writer = new StreamWriter(outputFile)) {
+                using (var reader = new StreamReader(inputFile, true)) {
+                    var header = reader.ReadLine();
+
+                    var columns = header.Split(",");
+                    for (int i = 0; i < columns.Length; i++) {
+                        columns[i] = columns[i].Trim();
+                    }
+
+                    while (!reader.EndOfStream) {
+                        var line = reader.ReadLine();
+                        if (String.IsNullOrEmpty(line))
+                            continue;
+
+                        var root = new JObject();
+
+                        var parts = line.Split(",");
+                        for (int i = 0; i < parts.Length && i < columns.Length; i++) {
+                            var column = columns[i];
+
+                            if (json_mapping.ContainsKey(column)) {
+                                var path = json_mapping[column];
+
+                                var path_parts = path.Split(".");
+                                var curObj = root;
+
+                                for (int j = 0; j < path_parts.Length - 1; j++) {
+                                    var subProperty = path_parts[j];
+                                    if (!curObj.ContainsKey(subProperty)) {
+                                        curObj.Add(subProperty, new JObject());
+                                    }
+
+                                    curObj = (JObject) curObj[subProperty];
+                                }
+
+                                curObj.Add(path_parts[path_parts.Length - 1], ParseValue(json_types[column], parts[i]));
+                            }
+                        }
+                        var json = JsonConvert.SerializeObject(root).Replace("\"","\\\"");
+                        
+                        writer.WriteLine($"SET \"emails:{parts[0]}\" \"{json}\"");
+                    }
+                }
+            }
+        }
+
         private static DataField CreateParquetField(string name, DataType type) {
             switch (type) {
                 case DataType.Boolean:
@@ -300,6 +348,9 @@ namespace CsvConverter
             }
             else if (".parquet".Equals(Path.GetExtension(outputFile), StringComparison.InvariantCultureIgnoreCase)) {
                 ConvertCsvToParquet(inputFile, outputFile);
+            }
+            else if (".redis".Equals(Path.GetExtension(outputFile), StringComparison.InvariantCultureIgnoreCase)) {
+                ConvertCsvToRedis(inputFile, outputFile);
             }
             else {
                 Console.WriteLine("Unsupported output file format!");
