@@ -22,7 +22,7 @@ namespace DriveSupplyCollectorBaseTests
         public void TestCsvDetect() {
             var processor = new CsvFileProcessor();
             
-            Assert.True(processor.CanProcess("emails-utf8.csv"));
+            Assert.True(processor.CanProcess("EMAILS-UTF8.CSV"));
         }
 
         [Fact]
@@ -49,12 +49,12 @@ namespace DriveSupplyCollectorBaseTests
             };
 
             var container = new DataContainer();
-            var collection = new DataCollection(container, "emails-utf8.csv");
+            var collection = new DataCollection(container, "EMAILS-UTF8.CSV");
 
             long rowCount;
             var processor = new CsvFileProcessor();
             List<DataEntity> entities;
-            using (var stream = File.Open("../../../tests/emails-utf8.csv", FileMode.Open)) {
+            using (var stream = File.Open("../../../tests/EMAILS-UTF8.CSV", FileMode.Open)) {
                 entities = processor.ParseFileSchema(container, collection, stream, out rowCount);
             }
 
@@ -72,13 +72,13 @@ namespace DriveSupplyCollectorBaseTests
         public void TestCsvCollect()
         {
             var container = new DataContainer();
-            var collection = new DataCollection(container, "emails-utf8.csv");
+            var collection = new DataCollection(container, "EMAILS-UTF8.CSV");
 
             var processor = new CsvFileProcessor();
 
             long rowCount;
             List<DataEntity> entities;
-            using (var stream = File.Open("../../../tests/emails-utf8.csv", FileMode.Open))
+            using (var stream = File.Open("../../../tests/EMAILS-UTF8.CSV", FileMode.Open))
             {
                 entities = processor.ParseFileSchema(container, collection, stream, out rowCount);
             }
@@ -87,7 +87,7 @@ namespace DriveSupplyCollectorBaseTests
 
             int index = entities.IndexOf(entity);
             
-            using (var stream = File.Open("../../../tests/emails-utf8.csv", FileMode.Open)) {
+            using (var stream = File.Open("../../../tests/EMAILS-UTF8.CSV", FileMode.Open)) {
                 var samples =
                     processor.CollectSamples(container, collection, entity, index, stream, 5, 1);
                 Assert.Contains("sally@example.com", samples);
@@ -97,8 +97,8 @@ namespace DriveSupplyCollectorBaseTests
         [Fact]
         public void TestCsvEncodings() {
             var container = new DataContainer();
-            var collection1 = new DataCollection(container, "emails-utf8.csv");
-            var collection2 = new DataCollection(container, "emails-utf16.csv");
+            var collection1 = new DataCollection(container, "EMAILS-UTF8.CSV");
+            var collection2 = new DataCollection(container, "EMAILS-UTF16.CSV");
 
             var emails = new string[] { "will@example.com", "sally@example.com", "chris@example.com" };
 
@@ -106,7 +106,7 @@ namespace DriveSupplyCollectorBaseTests
 
             long rowCount;
             List<DataEntity> entities;
-            using (var stream = File.Open("../../../tests/emails-utf8.csv", FileMode.Open))
+            using (var stream = File.Open("../../../tests/EMAILS-UTF8.CSV", FileMode.Open))
             {
                 entities = processor.ParseFileSchema(container, collection1, stream, out rowCount);
             }
@@ -116,12 +116,12 @@ namespace DriveSupplyCollectorBaseTests
             List<string> samples1;
             List<string> samples2;
 
-            using (var stream = File.Open("../../../tests/emails-utf8.csv", FileMode.Open)) {
+            using (var stream = File.Open("../../../tests/EMAILS-UTF8.CSV", FileMode.Open)) {
                 samples1 = processor.CollectSamples(container, collection1, entity, index, stream,
                     emails.Length, 1);
             }
 
-            using (var stream = File.Open("../../../tests/emails-utf16.csv", FileMode.Open)) {
+            using (var stream = File.Open("../../../tests/EMAILS-UTF16.CSV", FileMode.Open)) {
                 samples2 = processor.CollectSamples(container, collection2, entity, index, stream,
                     emails.Length, 1);
             }
