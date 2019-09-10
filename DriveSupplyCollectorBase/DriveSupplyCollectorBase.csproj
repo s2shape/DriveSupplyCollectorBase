@@ -1,7 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <TargetFramework>netcoreapp2.2</TargetFramework>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Authors>Mikhail Burilov</Authors>
+    <Company>Second Sight</Company>
+    <Description>Base class for file-based supply collectors.</Description>
   </PropertyGroup>
 
   <ItemGroup>
